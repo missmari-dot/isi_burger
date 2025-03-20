@@ -15,7 +15,7 @@ jobs:
 
     env:
       IMAGE_NAME: mariama640/isi_burger
-      SONAR_PROJECT_KEY: isi_burger
+      SONAR_PROJECT_KEY: missmari-dot_isi_burger  # Updated project key
       SONAR_ORG: missmari-dot
       SONAR_HOST: https://sonarcloud.io
 
@@ -54,7 +54,7 @@ jobs:
           /opt/sonar-scanner/bin/sonar-scanner --version
 
       - name: 🔎 Vérification SonarQube
-        run: /opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=$SONAR_PROJECT_KEY -Dsonar.organization=$SONAR_ORG -Dsonar.host.url=$SONAR_HOST
+        run: /opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=$SONAR_PROJECT_KEY -Dsonar.organization=$SONAR_ORG -Dsonar.host.url=$SONAR_HOST -Dsonar.branch.name=$GITHUB_REF_NAME
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
