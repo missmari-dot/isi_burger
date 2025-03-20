@@ -38,9 +38,21 @@ jobs:
 
       - name: 🔍 Installer SonarScanner
         run: |
+          # Install required tools
           sudo apt update
-          sudo apt install -y sonar-scanner
-          sonar-scanner --version  # Vérifier l'installation
+          sudo apt install -y unzip wget
+
+          # Download and install SonarScanner
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          sudo unzip sonar-scanner-cli-5.0.1.3006-linux.zip -d /opt
+          sudo mv /opt/sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
+
+          # Add SonarScanner to PATH
+          echo 'export PATH=$PATH:/opt/sonar-scanner/bin' | sudo tee -a /etc/profile.d/sonar-scanner.sh
+          source /etc/profile.d/sonar-scanner.sh
+
+          # Verify installation
+          sonar-scanner --version
 
       - name: 🔎 Vérification SonarQube
         run: sonar-scanner -Dsonar.projectKey=$SONAR_PROJECT_KEY -Dsonar.organization=$SONAR_ORG -Dsonar.host.url=$SONAR_HOST
