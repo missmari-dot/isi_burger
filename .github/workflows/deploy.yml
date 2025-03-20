@@ -48,13 +48,13 @@ jobs:
           sudo mv /opt/sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
 
           # Add SonarScanner to PATH
-          echo '/opt/sonar-scanner/bin' >> $GITHUB_PATH
+          echo "/opt/sonar-scanner/bin" >> $GITHUB_PATH
 
           # Verify installation
-          sonar-scanner --version
+          /opt/sonar-scanner/bin/sonar-scanner --version
 
       - name: 🔎 Vérification SonarQube
-        run: sonar-scanner -Dsonar.projectKey=$SONAR_PROJECT_KEY -Dsonar.organization=$SONAR_ORG -Dsonar.host.url=$SONAR_HOST
+        run: /opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=$SONAR_PROJECT_KEY -Dsonar.organization=$SONAR_ORG -Dsonar.host.url=$SONAR_HOST
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
