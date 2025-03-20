@@ -48,8 +48,7 @@ jobs:
           sudo mv /opt/sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
 
           # Add SonarScanner to PATH
-          echo 'export PATH=$PATH:/opt/sonar-scanner/bin' | sudo tee -a /etc/profile.d/sonar-scanner.sh
-          source /etc/profile.d/sonar-scanner.sh
+          echo '/opt/sonar-scanner/bin' >> $GITHUB_PATH
 
           # Verify installation
           sonar-scanner --version
@@ -91,7 +90,6 @@ jobs:
           echo "Création de l'image Docker avec le tag : $IMAGE_TAG"
           docker build -t $IMAGE_TAG -f Dockerfile .
           docker push $IMAGE_TAG
-
 
 
 
