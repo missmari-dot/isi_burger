@@ -74,35 +74,35 @@ jobs:
           docker build -t $IMAGE_TAG -f Dockerfile .
           docker push $IMAGE_TAG
 
-  deploy-k8s:
-    needs: docker
-    runs-on: ubuntu-latest
-    env:
-      IMAGE_NAME: mariama640/isi_burger
+  # deploy-k8s:
+  #   needs: docker
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     IMAGE_NAME: mariama640/isi_burger
 
-    steps:
-      - name: 🛎 Cloner le repo
-        uses: actions/checkout@v3
+  #   steps:
+  #     - name: 🛎 Cloner le repo
+  #       uses: actions/checkout@v3
 
-      - name: 📥 Installer `kubectl`
-        run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
+  #     - name: 📥 Installer `kubectl`
+  #       run: |
+  #         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+  #         chmod +x kubectl
+  #         sudo mv kubectl /usr/local/bin/
 
-      - name: 🔑 Configurer AWS CLI
-        run: |
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws configure set region eu-north-1
+  #     - name: 🔑 Configurer AWS CLI
+  #       run: |
+  #         aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws configure set region eu-north-1
 
-      - name: 🔑 Mettre à jour le contexte Kubernetes pour EKS
-        run: |
-          aws eks update-kubeconfig --name isi-burger-cluster --region eu-north-1
-          kubectl config current-context
+  #     - name: 🔑 Mettre à jour le contexte Kubernetes pour EKS
+  #       run: |
+  #         aws eks update-kubeconfig --name isi-burger-cluster --region eu-north-1
+  #         kubectl config current-context
 
-      - name: 🚀 Déployer Laravel sur Kubernetes
-        run: |
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
+  #     - name: 🚀 Déployer Laravel sur Kubernetes
+  #       run: |
+  #         kubectl apply -f k8s/namespace.yaml
+  #         kubectl apply -f k8s/deployment.yaml
+  #         kubectl apply -f k8s/service.yaml
