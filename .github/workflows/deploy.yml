@@ -1,0 +1,117 @@
+
+name: CI - isi_burger Service
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - preprod
+      - staging
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      IMAGE_NAME: mariama640/isi_burger
+      REGISTRY_DEV: mariama640/dev-registry
+      REGISTRY_PROD: mariama640/prod-registry
+      SONAR_PROJECT_KEY: https://github.com/missmari-dot/isi_burger
+      SONAR_ORG: missmari-dot
+      SONAR_HOST: https://sonarcloud.io
+
+    steps:
+      - name: Cloner le repo
+        uses: actions/checkout@v3
+
+      - name: 🔧 Configurer JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Build du projet
+        run: mvn clean install -DskipTests
+
+      - name: 🎯 Vérification SonarQube
+        run: mvn sonar:sonar -Dsonar.projectKey=$SONAR_PROJECT_KEY -Dsonar.organization=$SONAR_ORG -Dsonar.host.url=$SONAR_HOST
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: 📂 Stocker les artefacts de build
+        uses: actions/upload-artifact@v4
+        with:
+          name: isi_burger-artifact
+          path: target/*.jar
+
+  docker:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: mariama640/isi_burger
+
+    steps:
+      - name: 🛎 Cloner le repo
+        uses: actions/checkout@v3
+
+      - name: 📥 Télécharger les artefacts de build
+        uses: actions/download-artifact@v4
+        with:
+          name: isi_burger-artifact
+          path: target
+
+      - name: 🔑 Login à Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: 🏷 Création et Push de l'image Docker
+        run: |
+          TAG=$(echo $GITHUB_REF | sed 's/refs\/heads\///')
+          IMAGE_TAG=${{ env.IMAGE_NAME }}:$TAG
+          echo "Création de l'image Docker avec le tag : $IMAGE_TAG"
+          docker build -t $IMAGE_TAG .
+          docker push $IMAGE_TAG
+
+  deploy-k8s:
+    needs: docker
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: mariama640/isi_burger
+
+    steps:
+      - name: 🛎 Cloner le repo
+        uses: actions/checkout@v3
+
+
+      - name: 📥 Installer `kubectl`
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      - name: 🔑 Configurer AWS CLI
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set region eu-north-1
+
+      - name: 🔑 Mettre à jour le contexte Kubernetes pour EKS
+        run: |
+          aws eks update-kubeconfig --name isi-burger-cluster --region eu-north-1
+          kubectl config current-context
+
+      - name: 🔑 Configurer l'accès à Kubernetes
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" | base64 --decode > kubeconfig.yaml
+          export KUBECONFIG=kubeconfig.yaml
+          kubectl config use-context arn:aws:eks:eu-north-1:851725523231:cluster/isi-burger-cluster
+
+      - name: 🔍 Vérifier la connexion au cluster EKS
+        run: kubectl get nodes
+
+      - name: 🚀 Déployer sur Kubernetes (Preprod)
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml

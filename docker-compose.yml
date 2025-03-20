@@ -1,0 +1,17 @@
+#version: '3.8'
+
+services:
+  isi_burger-service:
+    image: mariama640/isi_burger:tagname
+    container_name: isi_burger
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    networks:
+      - my_network
+
+networks:
+  my_network:
+    driver: bridge

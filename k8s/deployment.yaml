@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gestionemploidutemps
+  namespace: preprod
+  labels:
+    app: gestionemploidutemps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gestionemploidutemps
+  template:
+    metadata:
+      name: gestionemploidutemps
+      labels:
+        app: gestionemploidutemps
+    spec:
+      containers:
+        - name: gestionemploidutemps
+          image: nginx
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              protocol: TCP
+      restartPolicy: Always
+      
