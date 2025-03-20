@@ -88,7 +88,7 @@ jobs:
           TAG=$(echo $GITHUB_REF | sed 's/refs\/heads\///')
           IMAGE_TAG=${{ env.IMAGE_NAME }}:$TAG
           echo "Création de l'image Docker avec le tag : $IMAGE_TAG"
-          docker build -t $IMAGE_TAG -f Dockerfile .
+          docker build -t $IMAGE_TAG .
           docker push $IMAGE_TAG
 
 

@@ -30,9 +30,11 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
         if (Auth::user()->role == 'gestionnaire') {
             return redirect()->route('dashboard');
-        }else
-            return redirect()->route('catalogue');
+        }else{
 
+            return redirect()->route('catalogue');
+        }
+       
     }
 
     /**
