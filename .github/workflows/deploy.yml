@@ -36,9 +36,16 @@ jobs:
       - name: 🔑 Générer la clé d'application
         run: php artisan key:generate
 
-      - name: 🔍 Installer SonarScanner
+      - name: 🔍 Installer SonarScanner (APT)
         run: |
-          wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-5.0.1.3006-linux.zip
+          sudo apt update
+          sudo apt install -y sonar-scanner
+        continue-on-error: true
+
+      - name: 🔍 Télécharger et installer SonarScanner depuis GitHub si APT échoue
+        if: failure()
+        run: |
+          wget -O sonar-scanner.zip https://github.com/SonarSource/sonar-scanner-cli/releases/download/5.0.1.3006/sonar-scanner-5.0.1.3006-linux.zip
           unzip sonar-scanner.zip
           sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
           echo "/opt/sonar-scanner/bin" >> $GITHUB_PATH
@@ -80,6 +87,7 @@ jobs:
           echo "Création de l'image Docker avec le tag : $IMAGE_TAG"
           docker build -t $IMAGE_TAG -f Dockerfile .
           docker push $IMAGE_TAG
+
 
 
   # deploy-k8s:
