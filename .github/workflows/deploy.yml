@@ -39,15 +39,10 @@ jobs:
       - name: 🔍 Installer SonarScanner
         run: |
           sudo apt update
-          sudo apt install -y unzip curl
-          curl -fsSL -o sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-5.0.1.3006-linux.zip
-          unzip sonar-scanner.zip
-          sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
-          echo "/opt/sonar-scanner/bin" >> $GITHUB_PATH
-          export PATH="/opt/sonar-scanner/bin:$PATH"
+          sudo apt install -y sonar-scanner
           sonar-scanner --version  # Vérifier l'installation
 
-      - name: 🔍 Vérification SonarQube
+      - name: 🔎 Vérification SonarQube
         run: sonar-scanner -Dsonar.projectKey=$SONAR_PROJECT_KEY -Dsonar.organization=$SONAR_ORG -Dsonar.host.url=$SONAR_HOST
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -57,6 +52,34 @@ jobs:
         with:
           name: isi_burger-artifact
           path: .
+
+  docker:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: mariama640/isi_burger
+
+    steps:
+      - name: 🛎 Cloner le repo
+        uses: actions/checkout@v3
+
+      - name: 📥 Télécharger les artefacts Laravel
+        uses: actions/download-artifact@v4
+        with:
+          name: isi_burger-artifact
+          path: .
+
+      - name: 🔑 Login à Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: 🏷 Création et Push de l'image Docker
+        run: |
+          TAG=$(echo $GITHUB_REF | sed 's/refs\/heads\///')
+          IMAGE_TAG=${{ env.IMAGE_NAME }}:$TAG
+          echo "Création de l'image Docker avec le tag : $IMAGE_TAG"
+          docker build -t $IMAGE_TAG -f Dockerfile .
+          docker push $IMAGE_TAG
+
 
 
 
