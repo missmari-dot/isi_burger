@@ -1,5 +1,4 @@
-
-name: CI - isi_burger Service
+name: CI/CD - isi_burger Laravel
 
 on:
   push:
@@ -16,27 +15,29 @@ jobs:
 
     env:
       IMAGE_NAME: mariama640/isi_burger
-      REGISTRY_DEV: mariama640/dev-registry
-      REGISTRY_PROD: mariama640/prod-registry
-      SONAR_PROJECT_KEY: https://github.com/missmari-dot/isi_burger
+      SONAR_PROJECT_KEY: isi_burger
       SONAR_ORG: missmari-dot
       SONAR_HOST: https://sonarcloud.io
 
     steps:
-      - name: Cloner le repo
+      - name: 🛎 Cloner le repo
         uses: actions/checkout@v3
 
-      - name: 🔧 Configurer JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '21'
+      - name: 🔧 Installer PHP & Composer
+        run: |
+          sudo apt update
+          sudo apt install -y php-cli unzip curl php-mbstring php-xml php-bcmath php-curl php-tokenizer php-zip php-sqlite3 php-mysql composer
+          php -v
+          composer -V
 
-      - name: Build du projet
-        run: mvn clean install -DskipTests
+      - name: 📦 Installer les dépendances Laravel
+        run: composer install --no-dev --prefer-dist
 
-      - name: 🎯 Vérification SonarQube
-        run: mvn sonar:sonar -Dsonar.projectKey=$SONAR_PROJECT_KEY -Dsonar.organization=$SONAR_ORG -Dsonar.host.url=$SONAR_HOST
+      - name: 🔑 Générer la clé d'application
+        run: php artisan key:generate
+
+      - name: 🔍 Vérification SonarQube
+        run: sonar-scanner -Dsonar.projectKey=$SONAR_PROJECT_KEY -Dsonar.organization=$SONAR_ORG -Dsonar.host.url=$SONAR_HOST
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
@@ -44,7 +45,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: isi_burger-artifact
-          path: target/*.jar
+          path: .
 
   docker:
     needs: build
@@ -56,11 +57,11 @@ jobs:
       - name: 🛎 Cloner le repo
         uses: actions/checkout@v3
 
-      - name: 📥 Télécharger les artefacts de build
+      - name: 📥 Télécharger les artefacts Laravel
         uses: actions/download-artifact@v4
         with:
           name: isi_burger-artifact
-          path: target
+          path: .
 
       - name: 🔑 Login à Docker Hub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
@@ -70,7 +71,7 @@ jobs:
           TAG=$(echo $GITHUB_REF | sed 's/refs\/heads\///')
           IMAGE_TAG=${{ env.IMAGE_NAME }}:$TAG
           echo "Création de l'image Docker avec le tag : $IMAGE_TAG"
-          docker build -t $IMAGE_TAG .
+          docker build -t $IMAGE_TAG -f Dockerfile .
           docker push $IMAGE_TAG
 
   deploy-k8s:
@@ -82,7 +83,6 @@ jobs:
     steps:
       - name: 🛎 Cloner le repo
         uses: actions/checkout@v3
-
 
       - name: 📥 Installer `kubectl`
         run: |
@@ -101,16 +101,7 @@ jobs:
           aws eks update-kubeconfig --name isi-burger-cluster --region eu-north-1
           kubectl config current-context
 
-      - name: 🔑 Configurer l'accès à Kubernetes
-        run: |
-          echo "${{ secrets.KUBECONFIG }}" | base64 --decode > kubeconfig.yaml
-          export KUBECONFIG=kubeconfig.yaml
-          kubectl config use-context arn:aws:eks:eu-north-1:851725523231:cluster/isi-burger-cluster
-
-      - name: 🔍 Vérifier la connexion au cluster EKS
-        run: kubectl get nodes
-
-      - name: 🚀 Déployer sur Kubernetes (Preprod)
+      - name: 🚀 Déployer Laravel sur Kubernetes
         run: |
           kubectl apply -f k8s/namespace.yaml
           kubectl apply -f k8s/deployment.yaml

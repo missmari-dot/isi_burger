@@ -1,17 +1,64 @@
-#version: '3.8'
+version: '3.8'
 
 services:
-  isi_burger-service:
-    image: mariama640/isi_burger:tagname
-    container_name: isi_burger
+  # Service Laravel (PHP-FPM)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: isi_burger_app
+    restart: always
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_KEY=${APP_KEY}
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=isi_burger
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+    networks:
+      - laravel_network
+    depends_on:
+      - db
+
+  # Service Nginx
+  nginx:
+    image: nginx:latest
+    container_name: isi_burger_nginx
     restart: always
     ports:
-      - "8083:8083"
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      - "8000:80"
+    volumes:
+      - .:/var/www
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - app
     networks:
-      - my_network
+      - laravel_network
+
+  # Service MySQL
+  db:
+    image: mysql:8
+    container_name: isi_burger_db
+    restart: always
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: isi_burger
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - laravel_network
+    volumes:
+      - db_data:/var/lib/mysql
 
 networks:
-  my_network:
+  laravel_network:
     driver: bridge
+
+volumes:
+  db_data:
